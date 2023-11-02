@@ -3,17 +3,33 @@ import { addToDb, deleteShoppingCart, getShoppingCart } from '../../utilities/fa
 import Cart from '../Cart/Cart';
 import Product from '../Product/Product';
 import './Shop.css';
-import { Link } from 'react-router-dom';
+import { Link, useLoaderData } from 'react-router-dom';
 
 const Shop = () => {
     const [products, setProducts] = useState([]);
+    const [currentPage, setCurrentPage] = useState(0);
     const [cart, setCart] = useState([])
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const { count } = useLoaderData();
+
+    // console.log(count);
+    const totalPage = 10;
+    const numberOfPage = Math.ceil(count / totalPage);
+    // console.log(page);
+    // let shopPage = [];
+    // for (let i = 0; i < page; i++) {
+    //     // console.log(i + 1)
+    //     shopPage.push(i);
+    // }
+    // console.log(shopPage);
+    const pages = [...Array(numberOfPage).keys()];
+    console.log(pages)
 
     useEffect(() => {
-        fetch('http://localhost:5000/products')
+        fetch(`http://localhost:5000/products?page=${currentPage}&size=${itemsPerPage}`)
             .then(res => res.json())
             .then(data => setProducts(data))
-    }, []);
+    }, [currentPage, itemsPerPage]);
 
     useEffect(() => {
         const storedCart = getShoppingCart();
@@ -61,28 +77,69 @@ const Shop = () => {
         deleteShoppingCart();
     }
 
+    const handelPerItemsChange = e => {
+        // console.log(e.target.value)
+        const pageValue = parseInt(e.target.value);
+        console.log(pageValue);
+        setItemsPerPage(pageValue);
+        setCurrentPage(0);
+    }
+
+    const handlePrevious = () => {
+        if (currentPage > 0) {
+            setCurrentPage(currentPage - 1)
+        }
+    }
+    const handleNext = () => {
+        if (currentPage < pages.length - 1) {
+            setCurrentPage(currentPage + 1)
+        }
+    }
+
     return (
-        <div className='shop-container'>
-            <div className="products-container">
+        <>
+            <div className='shop-container'>
+                <div className="products-container">
+                    {
+                        products.map(product => <Product
+                            key={product._id}
+                            product={product}
+                            handleAddToCart={handleAddToCart}
+                        ></Product>)
+                    }
+                </div>
+                <div className="cart-container">
+                    <Cart
+                        cart={cart}
+                        handleClearCart={handleClearCart}
+                    >
+                        <Link className='proceed-link' to="/orders">
+                            <button className='btn-proceed'>Review Order</button>
+                        </Link>
+                    </Cart>
+                </div>
+
+            </div>
+            <div className='pagination'>
+                <p>Current page: {currentPage}</p>
+                <button onClick={handlePrevious}>Previous</button>
                 {
-                    products.map(product => <Product
-                        key={product._id}
-                        product={product}
-                        handleAddToCart={handleAddToCart}
-                    ></Product>)
+                    pages.map(page => <button
+                        className={currentPage === page && 'selected'}
+                        onClick={() => setCurrentPage(page)}
+                        key={page}
+                    >{page}</button>)
                 }
+                <button onClick={handleNext}>Next</button>
+                <select value={itemsPerPage} onChange={handelPerItemsChange} name="" id="">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="30">30</option>
+                    <option value="40">40</option>
+                </select>
             </div>
-            <div className="cart-container">
-                <Cart
-                    cart={cart}
-                    handleClearCart={handleClearCart}
-                >
-                    <Link className='proceed-link' to="/orders">
-                        <button className='btn-proceed'>Review Order</button>
-                    </Link>
-                </Cart>
-            </div>
-        </div>
+        </>
     );
 };
 
